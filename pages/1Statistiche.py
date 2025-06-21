@@ -15,7 +15,7 @@ def get_turni(round_dir):
     turni = sorted([f.stem for f in round_dir.glob("turno_*.csv")])
     return turni
 
-@st.cache_data
+#@st.cache_data
 def load_turno_csv(round_name, turno_name):
     filepath = BASE_DIR / round_name / f"{turno_name}.csv"
     if not filepath.exists():
@@ -173,7 +173,7 @@ with tab1:
             </div>
 
             """
-            html(html_card, height=300)
+            html(html_card, height=200)
 with tab2:
     st.subheader(f"Prossime partite da giocare - {round_selected} {turno_selected}")
     if df_future.empty:
