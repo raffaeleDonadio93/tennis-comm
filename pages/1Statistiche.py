@@ -173,7 +173,7 @@ with tab1:
             </div>
 
             """
-            html(html_card, height=150)
+            html(html_card, height=300)
 with tab2:
     st.subheader(f"Prossime partite da giocare - {round_selected} {turno_selected}")
     if df_future.empty:
