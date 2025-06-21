@@ -114,8 +114,17 @@ with tab1:
             p1, p2 = row['Player 1'], row['Player 2']
 
             # Evidenzia il vincitore
-            style_p1 = "font-weight: 600; color: #222;" if p1 == vincitore else "color: #999;"
-            style_p2 = "font-weight: 600; color: #222;" if p2 == vincitore else "color: #999;"
+            style_p1 = (
+                "font-weight: 800; color: #2e7d32;"  # verde vittoria
+                if p1 == vincitore else
+                "font-weight: 600; color: #b71c1c;"  # rosso sconfitta
+            )
+
+            style_p2 = (
+                "font-weight: 800; color: #2e7d32;"
+                if p2 == vincitore else
+                "font-weight: 600; color: #b71c1c;"
+            )
 
             # Set
             s1 = row['Set 1'] if pd.notna(row['Set 1']) else "-"
@@ -128,7 +137,7 @@ with tab1:
                   border-radius: 22px;
                   padding: 16px 20px;
                   margin-bottom: 14px;
-                  background: linear-gradient(135deg, #f9f9f9, #ffffff);
+                  background: linear-gradient(135deg, #dfeffc, #f4faff);
                   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
                   font-family: 'Segoe UI', sans-serif;
                   width: 100%;
@@ -144,14 +153,14 @@ with tab1:
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <!-- Giocatori con Elo sotto il nome -->
                   <div style="width: 40%; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="{style_p1} font-size: 15px;">
+                    <div style="{style_p1} font-size: 18px;">
                       {p1}
                       <div style="font-size: 12px; color: #555; margin-top: 4px;">
                         Elo: {int(row['Elo iniziale 1'])} → <strong>{int(row['Elo 1 Finale'])}</strong>
                       </div>
                     </div>
             
-                    <div style="{style_p2} font-size: 15px; margin-top: 10px;">
+                    <div style="{style_p2} font-size: 18px; margin-top: 10px;">
                       {p2}
                       <div style="font-size: 12px; color: #555; margin-top: 4px;">
                         Elo: {int(row['Elo iniziale 2'])} → <strong>{int(row['Elo 2 Finale'])}</strong>
@@ -185,7 +194,17 @@ with tab2:
             with cols[idx]:
                 st.markdown(
                     f"""
-                    <div style="border:1px solid #ccc; padding:15px; border-radius:10px; text-align:center;">
+                   <div style="
+                  border-radius: 22px;
+                  padding: 16px 20px;
+                  margin-bottom: 14px;
+                  background: linear-gradient(135deg, #ffe5b4, #fff8ed);
+                  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+                  font-family: 'Segoe UI', sans-serif;
+                  width: 100%;
+                  max-width: 620px;
+                  max-height: 620px;
+              ">
                         <p style="font-weight:bold; font-size:26px;">
                             {row['Player 1']}<br>
                             <span style="font-size:18px; color:#555;">vs</span><br>
@@ -209,16 +228,17 @@ with tab3:
         with cols[idx]:
             st.markdown(
                 f"""
-                <div style="
-                    border: 1px solid #ccc;
-                    border-radius: 12px;
-                    padding: 16px;
-                    margin: 5px;
-                    background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    text-align: center;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                ">
+               <div style="
+                  border-radius: 22px;
+                  padding: 16px 20px;
+                  margin-bottom: 14px;
+                  background: linear-gradient(135deg, #ffe5b4, #fff8ed);
+                  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+                  font-family: 'Segoe UI', sans-serif;
+                  width: 100%;
+                  max-width: 620px;
+                  max-height: 620px;
+              ">
                     <div style="font-weight: 700; font-size: 18px; margin-bottom: 8px;">{row['Giocatore']}</div>
                     <div style="font-size: 14px; color: #333;">Elo finale: <strong>{row['Elo finale']}</strong></div>
                     <div style="font-size: 14px; color: #555;">Partite giocate: {row['Partite Giocate']}</div>
