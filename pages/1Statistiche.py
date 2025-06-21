@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import plotly.express as px
 from pathlib import Path
+from streamlit.components.v1 import html
 
 BASE_DIR = Path("operations/output/elo")
 
@@ -102,38 +103,100 @@ df_future = df_turno[df_turno["Vincitore"].isna() | (df_turno["Vincitore"] == ""
 tab1, tab2, tab3 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica Elo"])
 
 with tab1:
-    st.subheader(f"Partite già giocate - {round_selected} {turno_selected}")
-    st.dataframe(df_giocate[[
-        "Data", "Orario", "Luogo", "Player 1", "Player 2",
-        "Set 1", "Set 2", "Set 3", "Vincitore", "Superficie",
-        "Elo iniziale 1", "Elo iniziale 2", "Elo 1 Finale", "Elo 2 Finale"
-    ]], use_container_width=True)
 
-    if not df_giocate.empty:
-        df_plot = pd.DataFrame({
-            "Giocatore": list(df_giocate["Player 1"]) + list(df_giocate["Player 2"]),
-            "Elo Iniziale": list(df_giocate["Elo iniziale 1"]) + list(df_giocate["Elo iniziale 2"]),
-            "Elo Finale": list(df_giocate["Elo 1 Finale"]) + list(df_giocate["Elo 2 Finale"])
-        }).drop_duplicates(subset=["Giocatore"])
+    st.subheader(f"🎾 Partite già giocate - {round_selected} {turno_selected}")
 
-        df_melted = df_plot.melt(id_vars="Giocatore", value_vars=["Elo Iniziale", "Elo Finale"],
-                                 var_name="Tipo Elo", value_name="Punteggio Elo")
-
-        fig = px.line(df_melted, x="Tipo Elo", y="Punteggio Elo", color="Giocatore",
-                      markers=True,
-                      title=f"Andamento Elo - {round_selected} {turno_selected}",
-                      labels={"Tipo Elo": "Fase", "Punteggio Elo": "Elo"})
-        st.plotly_chart(fig, use_container_width=True)
-    else:
+    if df_giocate.empty:
         st.info("Nessuna partita giocata ancora in questo turno.")
+    else:
+        for _, row in df_giocate.iterrows():
+            vincitore = row['Vincitore']
+            p1, p2 = row['Player 1'], row['Player 2']
 
+            # Evidenzia il vincitore
+            style_p1 = "font-weight: 600; color: #222;" if p1 == vincitore else "color: #999;"
+            style_p2 = "font-weight: 600; color: #222;" if p2 == vincitore else "color: #999;"
+
+            # Set
+            s1 = row['Set 1'] if pd.notna(row['Set 1']) else "-"
+            s2 = row['Set 2'] if pd.notna(row['Set 2']) else "-"
+            s3 = row['Set 3'] if pd.notna(row['Set 3']) else "-"
+
+            html_card = f"""
+            <div style="width: 100%; display: flex; justify-content: flex-start;">
+              <div style="
+                  border-radius: 22px;
+                  padding: 16px 20px;
+                  margin-bottom: 14px;
+                  background: linear-gradient(135deg, #f9f9f9, #ffffff);
+                  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+                  font-family: 'Segoe UI', sans-serif;
+                  width: 100%;
+                  max-width: 620px;
+                  max-height: 620px;
+              ">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
+                  <div>📍 <strong>{row['Luogo']}</strong></div>
+                  <div>{row['Data']} • {row['Orario']}</div>
+                  <div>{row['Superficie']}</div>
+                </div>
+            
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <!-- Giocatori con Elo sotto il nome -->
+                  <div style="width: 40%; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="{style_p1} font-size: 15px;">
+                      {p1}
+                      <div style="font-size: 12px; color: #555; margin-top: 4px;">
+                        Elo: {int(row['Elo iniziale 1'])} → <strong>{int(row['Elo 1 Finale'])}</strong>
+                      </div>
+                    </div>
+            
+                    <div style="{style_p2} font-size: 15px; margin-top: 10px;">
+                      {p2}
+                      <div style="font-size: 12px; color: #555; margin-top: 4px;">
+                        Elo: {int(row['Elo iniziale 2'])} → <strong>{int(row['Elo 2 Finale'])}</strong>
+                      </div>
+                    </div>
+                  </div>
+            
+                  <!-- Set -->
+                  <div style="width: 30%; text-align: center;">
+                    <div style="font-size: 16px;"><strong>{s1}</strong></div>
+                    <div style="font-size: 16px;"><strong>{s2}</strong></div>
+                    <div style="font-size: 16px;"><strong>{s3}</strong></div>
+                  </div>
+            
+                  <!-- Spazio vuoto per bilanciare layout (rimuoviamo Elo qui) -->
+                  <div style="width: 30%;"></div>
+                </div>
+              </div>
+            </div>
+
+            """
+            html(html_card, height=150)
 with tab2:
     st.subheader(f"Prossime partite da giocare - {round_selected} {turno_selected}")
-    st.dataframe(df_future[[
-        "Data", "Orario", "Luogo", "Player 1", "Player 2",
-        "Set 1", "Set 2", "Set 3", "Vincitore", "Superficie"
-    ]], use_container_width=True)
-    st.info("Le partite senza vincitore sono da giocare.")
+    if df_future.empty:
+        st.info("Non ci sono altre partite in programma per questo turno.")
+    else:
+        cols = st.columns(len(df_future))
+
+        for idx, (i, row) in enumerate(df_future.iterrows()):
+            with cols[idx]:
+                st.markdown(
+                    f"""
+                    <div style="border:1px solid #ccc; padding:15px; border-radius:10px; text-align:center;">
+                        <p style="font-weight:bold; font-size:26px;">
+                            {row['Player 1']}<br>
+                            <span style="font-size:18px; color:#555;">vs</span><br>
+                            {row['Player 2']}
+                        </p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+
 
 with tab3:
     st.subheader(f"Classifica Elo Aggregata fino a {round_selected} {turno_selected}")
