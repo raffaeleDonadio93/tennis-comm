@@ -15,7 +15,7 @@ def get_turni(round_dir):
     turni = sorted([f.stem for f in round_dir.glob("turno_*.csv")])
     return turni
 
-#@st.cache_data
+
 def load_turno_csv(round_name, turno_name):
     filepath = BASE_DIR / round_name / f"{turno_name}.csv"
     if not filepath.exists():
@@ -82,13 +82,13 @@ def calcola_classifica_aggregata(round_name, turno_name):
 # -- Streamlit app --
 
 st.set_page_config(page_title="🎾 Tennis Elo Dashboard", layout="wide")
-st.title("🎾 Tennis Elo Dashboard")
+st.title("🎾 Dashboard")
 
 rounds = get_rounds()
-round_selected = st.sidebar.selectbox("Seleziona Round", rounds)
+round_selected = st.selectbox("Seleziona Round", rounds)
 
 turni = get_turni(BASE_DIR / round_selected)
-turno_selected = st.sidebar.selectbox("Seleziona Turno", turni)
+turno_selected = st.selectbox("Seleziona Turno", turni)
 
 df_turno = load_turno_csv(round_selected, turno_selected)
 
@@ -104,7 +104,7 @@ tab1, tab2, tab3 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica E
 
 with tab1:
 
-    st.subheader(f"🎾 Partite già giocate - {round_selected} {turno_selected}")
+    st.subheader(f"🎾 Partite già giocate al round: {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
 
     if df_giocate.empty:
         st.info("Nessuna partita giocata ancora in questo turno.")
@@ -175,7 +175,7 @@ with tab1:
             """
             html(html_card, height=200)
 with tab2:
-    st.subheader(f"Prossime partite da giocare - {round_selected} {turno_selected}")
+    st.subheader(f"Prossime partite da giocare al round: {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
     if df_future.empty:
         st.info("Non ci sono altre partite in programma per questo turno.")
     else:
@@ -199,8 +199,33 @@ with tab2:
 
 
 with tab3:
-    st.subheader(f"Classifica Elo Aggregata fino a {round_selected} {turno_selected}")
+    st.subheader(f"Classifica Elo Aggregata fino al round {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
     df_classifica = calcola_classifica_aggregata(round_selected, turno_selected)
+
+
+    cols = st.columns(len(df_classifica))
+
+    for idx, row in df_classifica.iterrows():
+        with cols[idx]:
+            st.markdown(
+                f"""
+                <div style="
+                    border: 1px solid #ccc;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin: 5px;
+                    background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    text-align: center;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                ">
+                    <div style="font-weight: 700; font-size: 18px; margin-bottom: 8px;">{row['Giocatore']}</div>
+                    <div style="font-size: 14px; color: #333;">Elo finale: <strong>{row['Elo finale']}</strong></div>
+                    <div style="font-size: 14px; color: #555;">Partite giocate: {row['Partite Giocate']}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     fig2 = px.bar(
         df_classifica,
@@ -215,4 +240,4 @@ with tab3:
 
     st.plotly_chart(fig2, use_container_width=True)
 
-    st.dataframe(df_classifica[["Giocatore", "Elo finale", "Partite Giocate"]], use_container_width=True)
+
