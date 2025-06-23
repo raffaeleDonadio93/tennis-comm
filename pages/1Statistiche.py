@@ -5,7 +5,7 @@ import plotly.express as px
 from pathlib import Path
 from streamlit.components.v1 import html
 
-BASE_DIR = Path("operations/output/elo")
+BASE_DIR = Path("operations/output/rounds")
 
 def get_rounds():
     rounds = sorted([d.name for d in BASE_DIR.iterdir() if d.is_dir() and d.name.startswith("round")])
@@ -14,7 +14,6 @@ def get_rounds():
 def get_turni(round_dir):
     turni = sorted([f.stem for f in round_dir.glob("turno_*.csv")])
     return turni
-
 
 def load_turno_csv(round_name, turno_name):
     filepath = BASE_DIR / round_name / f"{turno_name}.csv"
@@ -32,7 +31,18 @@ def load_turno_csv(round_name, turno_name):
 def estrai_giocatori(df):
     return sorted(set(df["Player 1"]).union(df["Player 2"]))
 
-def calcola_classifica_aggregata(round_name, turno_name):
+def estrai_punteggio(set_str):
+    if pd.isna(set_str) or '-' not in set_str:
+        return (None, None)
+    try:
+        main = set_str.split('-')
+        s1 = int(main[0].split('(')[0])
+        s2 = int(main[1].split('(')[0])
+        return s1, s2
+    except:
+        return (None, None)
+
+def calcola_classifica_punti(round_name, turno_name):
     round_num = int(round_name.split("_")[1])
     turno_num = int(turno_name.split("_")[1])
 
@@ -54,39 +64,62 @@ def calcola_classifica_aggregata(round_name, turno_name):
             if df_turno is not None:
                 df_all = pd.concat([df_all, df_turno], ignore_index=True)
 
-    # Solo partite giocate (con vincitore)
+    # Solo partite giocate
     df_giocate = df_all[df_all["Vincitore"].notna() & (df_all["Vincitore"] != "")]
 
-    elo_finali = {}
+    punti = {}
     partite_giocate = {}
 
-    for player in pd.unique(df_all[["Player 1", "Player 2"]].values.ravel()):
-        elo1 = df_all.loc[df_all["Player 1"] == player, "Elo 1 Finale"]
-        elo2 = df_all.loc[df_all["Player 2"] == player, "Elo 2 Finale"]
-        elo_finale = pd.concat([elo1, elo2]).max()
-        elo_finali[player] = elo_finale if pd.notnull(elo_finale) else 1500
+    for _, row in df_giocate.iterrows():
+        p1 = row["Player 1"]
+        p2 = row["Player 2"]
 
-        # Conta partite giocate come Player 1 o Player 2
-        count1 = df_giocate[df_giocate["Player 1"] == player].shape[0]
-        count2 = df_giocate[df_giocate["Player 2"] == player].shape[0]
-        partite_giocate[player] = count1 + count2
+        # Estrai set
+        def get_set_score(set_str):
+            try:
+                s1, s2 = set_str.split('-')
+                s1 = int(s1.split('(')[0])
+                s2 = int(s2.split('(')[0])
+                return s1, s2
+            except:
+                return None, None
+
+        sets = [get_set_score(row[f"Set {i}"]) for i in range(1, 4)]
+        s1_wins = sum(1 for s1, s2 in sets if s1 is not None and s2 is not None and s1 > s2)
+        s2_wins = sum(1 for s1, s2 in sets if s1 is not None and s2 is not None and s2 > s1)
+
+        # Assegna punti
+        if s1_wins == 2 and s2_wins == 0:
+            punti_p1, punti_p2 = 3, 0
+        elif s1_wins == 2 and s2_wins == 1:
+            punti_p1, punti_p2 = 2, 1
+        elif s1_wins == 1 and s2_wins == 2:
+            punti_p1, punti_p2 = 1, 2
+        elif s1_wins == 0 and s2_wins == 2:
+            punti_p1, punti_p2 = 0, 3
+        else:
+            continue  # Partita incompleta o dati mancanti
+
+        for player, punti_da_aggiungere in [(p1, punti_p1), (p2, punti_p2)]:
+            punti[player] = punti.get(player, 0) + punti_da_aggiungere
+            partite_giocate[player] = partite_giocate.get(player, 0) + 1
 
     df_classifica = pd.DataFrame({
-        "Giocatore": list(elo_finali.keys()),
-        "Elo finale": list(elo_finali.values()),
-        "Partite Giocate": [partite_giocate[p] for p in elo_finali.keys()]
-    })
-    df_classifica = df_classifica.sort_values(by="Elo finale", ascending=False).reset_index(drop=True)
+        "Giocatore": list(punti.keys()),
+        "Punti": list(punti.values()),
+        "Partite Giocate": [partite_giocate[g] for g in punti.keys()]
+    }).sort_values(by="Punti", ascending=False).reset_index(drop=True)
+
     return df_classifica
 
 # -- Streamlit app --
 
 st.set_page_config(page_title="🎾 Tennis Elo Dashboard", layout="wide")
-st.title("🎾 Dashboard")
 
-rounds = get_rounds()
-round_selected = st.selectbox("Seleziona Round", rounds)
 
+#rounds = get_rounds()
+#round_selected = st.selectbox("Seleziona Round", rounds)
+round_selected="round_1"
 turni = get_turni(BASE_DIR / round_selected)
 turno_selected = st.selectbox("Seleziona Turno", turni)
 
@@ -100,11 +133,9 @@ if df_turno is None:
 df_giocate = df_turno[df_turno["Vincitore"].notna() & (df_turno["Vincitore"] != "")]
 df_future = df_turno[df_turno["Vincitore"].isna() | (df_turno["Vincitore"] == "")]
 
-tab1, tab2, tab3 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica Elo"])
+tab1, tab2, tab3, tab4 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica","Fase Finale Momentanea"])
 
 with tab1:
-
-    st.subheader(f"🎾 Partite già giocate al round: {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
 
     if df_giocate.empty:
         st.info("Nessuna partita giocata ancora in questo turno.")
@@ -131,60 +162,65 @@ with tab1:
             s2 = row['Set 2'] if pd.notna(row['Set 2']) else "-"
             s3 = row['Set 3'] if pd.notna(row['Set 3']) else "-"
 
-            html_card = f"""
-            <div style="width: 100%; display: flex; justify-content: flex-start;">
-              <div style="
-                  border-radius: 22px;
-                  padding: 16px 20px;
-                  margin-bottom: 14px;
-                  background: linear-gradient(135deg, #dfeffc, #f4faff);
-                  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-                  font-family: 'Segoe UI', sans-serif;
-                  width: 100%;
-                  max-width: 620px;
-                  max-height: 620px;
-              ">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
-                  <div>📍 <strong>{row['Luogo']}</strong></div>
-                  <div>{row['Data']} • {row['Orario']}</div>
-                  <div>{row['Superficie']}</div>
-                </div>
-            
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <!-- Giocatori con Elo sotto il nome -->
-                  <div style="width: 40%; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="{style_p1} font-size: 18px;">
-                      {p1}
-                      <div style="font-size: 12px; color: #555; margin-top: 4px;">
-                        Elo: {int(row['Elo iniziale 1'])} → <strong>{int(row['Elo 1 Finale'])}</strong>
-                      </div>
-                    </div>
-            
-                    <div style="{style_p2} font-size: 18px; margin-top: 10px;">
-                      {p2}
-                      <div style="font-size: 12px; color: #555; margin-top: 4px;">
-                        Elo: {int(row['Elo iniziale 2'])} → <strong>{int(row['Elo 2 Finale'])}</strong>
-                      </div>
-                    </div>
-                  </div>
-            
-                  <!-- Set -->
-                  <div style="width: 30%; text-align: center;">
-                    <div style="font-size: 16px;"><strong>{s1}</strong></div>
-                    <div style="font-size: 16px;"><strong>{s2}</strong></div>
-                    <div style="font-size: 16px;"><strong>{s3}</strong></div>
-                  </div>
-            
-                  <!-- Spazio vuoto per bilanciare layout (rimuoviamo Elo qui) -->
-                  <div style="width: 30%;"></div>
-                </div>
-              </div>
-            </div>
+            sets = [estrai_punteggio(row[f'Set {i}']) for i in range(1, 4)]
 
+            # Conta i set vinti da ciascun giocatore
+            set_vinti_p1 = sum(1 for s1, s2 in sets if s1 is not None and s2 is not None and s1 > s2)
+            set_vinti_p2 = sum(1 for s1, s2 in sets if s1 is not None and s2 is not None and s2 > s1)
+
+            # Calcolo dei punti
+            if set_vinti_p1 == 2 and set_vinti_p2 == 0:
+                punti_p1, punti_p2 = 3, 0
+            elif set_vinti_p1 == 2 and set_vinti_p2 == 1:
+                punti_p1, punti_p2 = 2, 1
+            elif set_vinti_p1 == 1 and set_vinti_p2 == 2:
+                punti_p1, punti_p2 = 1, 2
+            elif set_vinti_p1 == 0 and set_vinti_p2 == 2:
+                punti_p1, punti_p2 = 0, 3
+            else:
+                punti_p1 = punti_p2 = "-"
+
+            # Format set linee
+            set_line_p1 = " ".join(str(s[0]) if s[0] is not None else "-" for s in sets)
+            set_line_p2 = " ".join(str(s[1]) if s[1] is not None else "-" for s in sets)
+
+            html_card = f"""
+              <div style="width: 100%; display: flex; justify-content: flex-start;"> 
+                  <div style="
+                      border-radius: 10px;
+                      padding: 16px 20px;
+                      margin-bottom: 14px;
+                      background: linear-gradient(135deg, #fff5b7, #fbd72b);
+                      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+                      font-family: 'Segoe UI', sans-serif;
+                      width: 100%;
+                      max-width: 500px;
+                  ">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
+                      <div>📍 <strong>{row['Luogo']}</strong></div>
+                      <div>{row['Data']} • {row['Orario']}</div>
+                      <div>{row['Superficie']}</div>
+                    </div>
+                
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                      <div style="text-align: left;">
+                        <div style="{style_p1} font-size: 18px; margin-bottom: 6px;">{p1}</div>
+                        <div style="font-size: 16px; margin-bottom: 10px;">{set_line_p1}</div>
+                
+                        <div style="{style_p2} font-size: 18px; margin-bottom: 6px;">{p2}</div>
+                        <div style="font-size: 16px;">{set_line_p2}</div>
+                      </div>
+                
+                      <div style="text-align: right; font-size: 16px; font-weight: bold;">
+                        <div style="margin-bottom: 26px;">{punti_p1} pt</div>
+                        <div>{punti_p2} pt</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
             """
             html(html_card, height=200)
 with tab2:
-    st.subheader(f"Prossime partite da giocare al round: {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
     if df_future.empty:
         st.info("Non ci sono altre partite in programma per questo turno.")
     else:
@@ -198,12 +234,11 @@ with tab2:
                   border-radius: 22px;
                   padding: 16px 20px;
                   margin-bottom: 14px;
-                  background: linear-gradient(135deg, #ffe5b4, #fff8ed);
+                  background: linear-gradient(135deg, #fff5b7, #fbd72b);
                   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
                   font-family: 'Segoe UI', sans-serif;
                   width: 100%;
-                  max-width: 620px;
-                  max-height: 620px;
+                  max-width: 420px;
               ">
                         <p style="font-weight:bold; font-size:26px;">
                             {row['Player 1']}<br>
@@ -214,50 +249,88 @@ with tab2:
                     """,
                     unsafe_allow_html=True,
                 )
-
-
-
 with tab3:
-    st.subheader(f"Classifica Elo Aggregata fino al round {round_selected.split('_')[1]} - turno: {turno_selected.split('_')[1]}")
-    df_classifica = calcola_classifica_aggregata(round_selected, turno_selected)
+    # Calcola la classifica
+    df_classifica = calcola_classifica_punti(round_selected, turno_selected)
+
+    # Layout a due colonne: sinistra (classifica) e destra (vuota o per altri contenuti)
+    col_sx, col_dx = st.columns([1, 2])  # sinistra stretta, destra più ampia
+
+    with col_sx:
+
+        for idx, row in df_classifica.iterrows():
+            posizione = idx + 1
+            giocatore = row["Giocatore"]
+            punti = row["Punti"]
+            partite = row["Partite Giocate"]
+
+            st.markdown(f"""
+            <div style="
+                border-radius: 16px;
+                padding: 16px 20px;
+                margin-bottom: 16px;
+                background: linear-gradient(135deg, #fff5b7, #fbd72b);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                font-family: 'Segoe UI', sans-serif;
+            ">
+                <div style="font-size: 18px; font-weight: 700; color: #222;">🔝 {posizione}. {giocatore}</div>
+                <div style="margin-top: 6px; font-size: 15px; color: #444;">🏅 <strong>Punti:</strong> {punti}</div>
+                <div style="font-size: 15px; color: #666;">🎾 <strong>Partite:</strong> {partite}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # La col_dx resta vuota o può contenere altri componenti (grafici, partite, etc.)
+
+with tab4:
+    df_classifica = calcola_classifica_punti(round_selected, turno_selected)
+
+    # Conta partite giocate nel turno corrente (per decidere se mostrare semifinali)
+    df_turno_corrente = load_turno_csv(round_selected, turno_selected)
+    partite_giocate_turno = df_turno_corrente[
+        df_turno_corrente["Vincitore"].notna() & (df_turno_corrente["Vincitore"] != "")
+        ].shape[0]
+
+    if partite_giocate_turno >= 2 and len(df_classifica) >= 4:
+        primo = df_classifica.loc[0, "Giocatore"]
+        secondo = df_classifica.loc[1, "Giocatore"]
+        terzo = df_classifica.loc[2, "Giocatore"]
+        quarto = df_classifica.loc[3, "Giocatore"]
+
+        semifinals = [
+            {"player1": primo, "player2": terzo},
+            {"player1": secondo, "player2": quarto},
+        ]
 
 
-    cols = st.columns(len(df_classifica))
-
-    for idx, row in df_classifica.iterrows():
-        with cols[idx]:
-            st.markdown(
-                f"""
-               <div style="
-                  border-radius: 22px;
-                  padding: 16px 20px;
-                  margin-bottom: 14px;
-                  background: linear-gradient(135deg, #ffe5b4, #fff8ed);
-                  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-                  font-family: 'Segoe UI', sans-serif;
-                  width: 100%;
-                  max-width: 620px;
-                  max-height: 620px;
-              ">
-                    <div style="font-weight: 700; font-size: 18px; margin-bottom: 8px;">{row['Giocatore']}</div>
-                    <div style="font-size: 14px; color: #333;">Elo finale: <strong>{row['Elo finale']}</strong></div>
-                    <div style="font-size: 14px; color: #555;">Partite giocate: {row['Partite Giocate']}</div>
+        def match_card(player1, player2, title=""):
+            return f"""
+                <div style="
+                    border-radius: 18px;
+                    padding: 16px 20px;
+                    margin-bottom: 14px;
+                    background: linear-gradient(135deg, #fff5b7, #fbd72b);
+                    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+                    font-family: 'Segoe UI', sans-serif;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    <h4 style="margin-bottom: 10px; color: #333;">{title}</h4>
+                    <p style="font-size: 22px; font-weight: bold; color: #2c3e50;">{player1}</p>
+                    <p style="font-size: 18px; color: #999;">vs</p>
+                    <p style="font-size: 22px; font-weight: bold; color: #2c3e50;">{player2}</p>
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-    fig2 = px.bar(
-        df_classifica,
-        x="Giocatore",
-        y="Elo finale",
-        color="Giocatore",
-        title="Classifica Elo Cumulativa",
-        text="Elo finale"
-    )
-    fig2.update_traces(textposition='outside')
-    fig2.update_layout(yaxis=dict(range=[min(df_classifica["Elo finale"]) - 10, max(df_classifica["Elo finale"]) + 10]))
-
-    st.plotly_chart(fig2, use_container_width=True)
+                """
 
 
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(match_card(semifinals[0]["player1"], semifinals[0]["player2"], "Semifinale 1"),
+                        unsafe_allow_html=True)
+        with col2:
+            st.markdown(match_card(semifinals[1]["player1"], semifinals[1]["player2"], "Semifinale 2"),
+                        unsafe_allow_html=True)
+
+        st.markdown(match_card("Vincente SF1", "Vincente SF2", "Finale"), unsafe_allow_html=True)
+
+    else:
+        st.info("Aspetta che siano giocate almeno 4 partite nel turno corrente per mostrare le semifinali.")
