@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import os
-import plotly.express as px
 from pathlib import Path
 from streamlit.components.v1 import html
 
@@ -133,7 +131,7 @@ if df_turno is None:
 df_giocate = df_turno[df_turno["Vincitore"].notna() & (df_turno["Vincitore"] != "")]
 df_future = df_turno[df_turno["Vincitore"].isna() | (df_turno["Vincitore"] == "")]
 
-tab1, tab2, tab3, tab4 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica","Fase Finale Momentanea"])
+tab1, tab2, tab3, tab4 = st.tabs(["Partite Giocate", "Prossime Partite", "Classifica","Fase Finale"])
 
 with tab1:
 
