@@ -283,14 +283,9 @@ with tab3:
 
 with tab4:
     df_classifica = calcola_classifica_punti(round_selected, turno_selected)
+    st.dataframe(df_classifica)
 
-    # Conta partite giocate nel turno corrente (per decidere se mostrare semifinali)
-    df_turno_corrente = load_turno_csv(round_selected, turno_selected)
-    partite_giocate_turno = df_turno_corrente[
-        df_turno_corrente["Vincitore"].notna() & (df_turno_corrente["Vincitore"] != "")
-        ].shape[0]
-
-    if partite_giocate_turno >= 2 and len(df_classifica) >= 4:
+    if len(df_classifica) >= 4:
         primo = df_classifica.loc[0, "Giocatore"]
         secondo = df_classifica.loc[1, "Giocatore"]
         terzo = df_classifica.loc[2, "Giocatore"]
