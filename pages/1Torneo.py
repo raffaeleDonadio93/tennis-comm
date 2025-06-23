@@ -283,7 +283,6 @@ with tab3:
 
 with tab4:
     df_classifica = calcola_classifica_punti(round_selected, turno_selected)
-    st.dataframe(df_classifica)
 
     if len(df_classifica) >= 4:
         primo = df_classifica.loc[0, "Giocatore"]
