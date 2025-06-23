@@ -3,13 +3,17 @@ import streamlit as st
 ## 🔄 Struttura del torneo
 st.header("🔄 Struttura del torneo")
 st.markdown("""
-- **Round**: rappresentano le fasi principali del torneo (es. `round_1`, `round_2`, ecc.).
-- **Turni**: ogni round contiene uno o più turni (es. `turno_1`, `turno_2`, ecc.), ognuno con un set di partite.
-- **Fase finale**: dopo la fase a gironi, si qualificano i primi 4 giocatori.
+- Il torneo si svolge con una **formula all'italiana**, ovvero tutti i giocatori si sfidano tra loro una volta (7 partite ciascuno).
+- Ogni **turno** corrisponde a una singola partita tra due giocatori, fino al completamento di tutte le 7 partite previste per ogni partecipante.
+- Al termine della fase a gironi, si qualificano i primi 4 giocatori in classifica.
   - Le semifinali vedono sfidarsi:  
-    🔹 1° classificato contro 3° classificato  
-    🔹 2° classificato contro 4° classificato  
+    🔹 1° classificato contro 4° classificato  
+    🔹 2° classificato contro 3° classificato  
   - I vincitori delle semifinali si sfidano nella finale per il titolo.
+
+- **Luogo e superficie delle partite**:  
+  I giocatori possono scegliere liberamente dove giocare, su qualsiasi superficie e in qualsiasi impianto.  
+  Si accorderanno di volta in volta per definire sede e condizioni delle partite.
 """)
 
 ## 🧮 Come funziona il sistema a punti
@@ -21,7 +25,6 @@ st.markdown("""
 |-------------------|-----------------|-----------------|
 | Vittoria 2-0      | 3               | 0               |
 | Vittoria 2-1      | 2               | 1               |
-
 
 - I punti determinano la classifica aggregata dei giocatori durante il torneo.
 - Questo sistema premia chi vince con punteggi netti e dà punti anche agli sconfitti che riescono a vincere almeno un set.
@@ -48,4 +51,4 @@ st.markdown("""
 """)
 
 st.markdown("---")
-st.success("Usa la barra laterale per iniziare: seleziona un Round e un Turno per esplorare i dati.")
+st.success("Usa la barra laterale per iniziare: seleziona un Turno per esplorare i dati.")

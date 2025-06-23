@@ -297,8 +297,8 @@ with tab4:
         quarto = df_classifica.loc[3, "Giocatore"]
 
         semifinals = [
-            {"player1": primo, "player2": terzo},
-            {"player1": secondo, "player2": quarto},
+            {"player1": primo, "player2": quarto},
+            {"player1": secondo, "player2": terzo},
         ]
 
 
@@ -333,4 +333,4 @@ with tab4:
         st.markdown(match_card("Vincente SF1", "Vincente SF2", "Finale"), unsafe_allow_html=True)
 
     else:
-        st.info("Aspetta che siano giocate almeno 4 partite nel turno corrente per mostrare le semifinali.")
+        st.info("Aspetta che siano giocate almeno 2 partite nel turno corrente per mostrare le semifinali.")
