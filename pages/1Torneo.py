@@ -88,7 +88,7 @@ with tab1:
                   ">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
                       <div>📍 <strong>{row['Luogo']}</strong></div>
-                      <div>{row['Data']} • {row['Orario']}</div>
+                      <div>{row['Data']}</div>
                       <div>{row['Superficie']}</div>
                     </div>
                 
