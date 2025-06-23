@@ -48,7 +48,7 @@ df_players = pd.read_csv("input/players.csv")
 players = df_players["Nome"].tolist()
 
 # Numero di round (ripetizioni del torneo)
-num_rounds = 3
+num_rounds = 1
 
 df_matches = round_robin_schedule(players, num_rounds)
 
