@@ -33,6 +33,7 @@ def crea_csv_per_turni_e_round(df, base_folder="output/rounds"):
             df_turno = df_round[df_round["Turno"] == turno].copy()
 
             # Aggiungi colonne con valori di default
+            df_turno["Turno"] = turno
             df_turno["Data"] = default_data
             df_turno["Orario"] = default_orario
             df_turno["Luogo"] = default_luogo
@@ -43,7 +44,7 @@ def crea_csv_per_turni_e_round(df, base_folder="output/rounds"):
             df_turno["Superficie"] = default_superficie
 
             # Seleziona colonne nell'ordine richiesto
-            df_out = df_turno[["Data", "Orario", "Luogo", "Player 1", "Player 2",
+            df_out = df_turno[["Turno","Data", "Orario", "Luogo", "Player 1", "Player 2",
                                "Set 1", "Set 2", "Set 3", "Vincitore", "Superficie"]]
 
             # Salva CSV nel path corretto
