@@ -19,6 +19,12 @@ for turno in turni:
 
 # Filtra partite giocate
 giocate = df_all[df_all["Vincitore"].notna() & (df_all["Vincitore"] != "")]
+# Converte il campo "Data" in datetime
+giocate["Data"] = pd.to_datetime(giocate["Data"], format="%d/%m/%Y", errors="coerce")
+giocate["Data_formattata"] = giocate["Data"].dt.strftime("%d %B %Y")  # Es: 23 giugno 2025
+# Ordina per data crescente (dal più vecchio al più recente)
+giocate = giocate.sort_values(by="Data")
+
 
 tab1, tab2 = st.tabs(["🕹️ Tutte le Partite Giocate", "📈 Classifica Totale"])
 
@@ -66,7 +72,7 @@ with tab1:
                   ">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
                       <div>📍 <strong>{row['Luogo']}</strong></div>
-                      <div>{row['Data']}</div>
+                      <div>{row['Data_formattata']}</div>
                       <div>{row['Superficie']}</div>
                     </div>
 
