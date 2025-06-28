@@ -34,6 +34,11 @@ with tab1:
     if giocate_player.empty:
         st.info("Nessuna partita giocata finora.")
     else:
+        # Converte il campo "Data" in datetime
+        giocate_player["Data"] = pd.to_datetime(giocate["Data"], format="%d/%m/%Y", errors="coerce")
+        giocate_player["Data_formattata"] = giocate_player["Data"].dt.strftime("%d %B %Y")  # Es: 23 giugno 2025
+        # Ordina per data crescente (dal più vecchio al più recente)
+        giocate_player = giocate_player.sort_values(by="Data")
         for _, row in giocate_player.iterrows():
             vincitore = row['Vincitore']
             p1, p2 = row['Player 1'], row['Player 2']
@@ -86,7 +91,7 @@ with tab1:
                   ">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; color: #777;">
                       <div>📍 <strong>{row['Luogo']}</strong></div>
-                      <div>{row['Data']}</div>
+                      <div>{row['Data_formattata']}</div>
                       <div>{row['Superficie']}</div>
                     </div>
 
